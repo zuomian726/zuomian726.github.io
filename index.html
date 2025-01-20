@@ -1,7 +1,26 @@
-
-
-
-<h1>hello world</h1>
-
-
-
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电视机页面</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="tv-container">
+        <div class="tv-screen">
+            <div id="video-container" class="video-container">
+                <canvas id="snow-canvas" class="snow-canvas"></canvas>
+                <video id="tv-video" class="tv-video" controls></video>
+            </div>
+        </div>
+        <div class="controls">
+            <button onclick="changeChannel('channel1.m3u8')">频道 1</button>
+            <button onclick="changeChannel('channel2.m3u8')">频道 2</button>
+            <button onclick="changeChannel('channel3.m3u8')">频道 3</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="script.js"></script>
+</body>
+</html>
