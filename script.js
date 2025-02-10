@@ -42,22 +42,68 @@ function drawSnowflakes() {
     requestAnimationFrame(drawSnowflakes);
 }
 
-function changeChannel(channel) {
-    // 停止当前视频播放
-    if (hls) {
-        hls.destroy();
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('tv-video');
+    let hls = null;
 
-    // 开始播放新频道
-    if (Hls.isSupported()) {
-        hls = new Hls();
-        hls.loadSource(channel);
-        hls.attachMedia(videoElement);
-        hls.on(Hls.Events.MANIFEST_PARSED, function () {
-            videoElement.play();
+    function initHLS(url) {
+        if (hls) {
+            hls.destroy();
+        }
+
+        hls = new Hls({
+            debug: false,
+            autoStartLoad: true,
+            startPosition: -1
+        });
+
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+            hls.loadSource(url);
+        });
+
+        hls.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+                switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.log('网络错误，尝试重新加载...');
+                        hls.startLoad();
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.log('媒体错误，尝试恢复...');
+                        hls.recoverMediaError();
+                        break;
+                    default:
+                        console.log('无法恢复的错误');
+                        hls.destroy();
+                        break;
+                }
+            }
         });
     }
-}
+
+    function changeChannel(url) {
+        if (Hls.isSupported()) {
+            initHLS(url);
+            video.play().catch(e => console.log('播放失败:', e));
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // 对于 Safari 等原生支持 HLS 的浏览器
+            video.src = url;
+            video.play().catch(e => console.log('播放失败:', e));
+        } else {
+            console.log('浏览器不支持 HLS');
+        }
+    }
+
+    // 为所有频道按钮添加点击事件
+    document.querySelectorAll('.channel-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const url = this.dataset.url;
+            changeChannel(url);
+        });
+    });
+});
 
 // 页面加载时创建雪花效果
 window.onload = () => {
