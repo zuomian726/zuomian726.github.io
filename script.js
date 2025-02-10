@@ -42,60 +42,60 @@ function drawSnowflakes() {
     requestAnimationFrame(drawSnowflakes);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const video = document.getElementById('tv-video');
-    let hls = null;
+// 将 changeChannel 和 initHLS 函数移到全局作用域
+let hls = null;
+const video = document.getElementById('tv-video');
 
-    function initHLS(url) {
-        if (hls) {
-            hls.destroy();
-        }
+function initHLS(url) {
+    if (hls) {
+        hls.destroy();
+    }
 
-        hls = new Hls({
-            debug: false,
-            autoStartLoad: true,
-            startPosition: -1
-        });
+    hls = new Hls({
+        debug: false,
+        autoStartLoad: true,
+        startPosition: -1
+    });
 
-        hls.attachMedia(video);
+    hls.attachMedia(video);
 
-        hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-            hls.loadSource(url);
-        });
+    hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+        hls.loadSource(url);
+    });
 
-        hls.on(Hls.Events.ERROR, function (event, data) {
-            if (data.fatal) {
-                switch (data.type) {
-                    case Hls.ErrorTypes.NETWORK_ERROR:
-                        console.log('网络错误，尝试重新加载...');
-                        hls.startLoad();
-                        break;
-                    case Hls.ErrorTypes.MEDIA_ERROR:
-                        console.log('媒体错误，尝试恢复...');
-                        hls.recoverMediaError();
-                        break;
-                    default:
-                        console.log('无法恢复的错误');
-                        hls.destroy();
-                        break;
-                }
+    hls.on(Hls.Events.ERROR, function (event, data) {
+        if (data.fatal) {
+            switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                    console.log('网络错误，尝试重新加载...');
+                    hls.startLoad();
+                    break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                    console.log('媒体错误，尝试恢复...');
+                    hls.recoverMediaError();
+                    break;
+                default:
+                    console.log('无法恢复的错误');
+                    hls.destroy();
+                    break;
             }
-        });
-    }
-
-    function changeChannel(url) {
-        if (Hls.isSupported()) {
-            initHLS(url);
-            video.play().catch(e => console.log('播放失败:', e));
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // 对于 Safari 等原生支持 HLS 的浏览器
-            video.src = url;
-            video.play().catch(e => console.log('播放失败:', e));
-        } else {
-            console.log('浏览器不支持 HLS');
         }
-    }
+    });
+}
 
+function changeChannel(url) {
+    if (Hls.isSupported()) {
+        initHLS(url);
+        video.play().catch(e => console.log('播放失败:', e));
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.play().catch(e => console.log('播放失败:', e));
+    } else {
+        console.log('浏览器不支持 HLS');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
     // 为所有频道按钮添加点击事件
     document.querySelectorAll('.channel-btn').forEach(button => {
         button.addEventListener('click', function() {
