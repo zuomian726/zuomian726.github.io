@@ -1,12 +1,9 @@
 // script.js
 
 // 获取 DOM 元素
-const videoElement = document.getElementById('tv-video');
+const video = document.getElementById('tv-video');
 const snowCanvas = document.getElementById('snow-canvas');
 const ctx = snowCanvas.getContext('2d');
-
-// 初始化 HLS.js 实例
-let hls = null;
 
 // 创建雪花效果
 const snowflakes = [];
@@ -43,66 +40,93 @@ function drawSnowflakes() {
 }
 
 // 将 changeChannel 和 initHLS 函数移到全局作用域
-let hls = null;
-const video = document.getElementById('tv-video');
+document.addEventListener('DOMContentLoaded', function() {
+    const channelsContainer = document.querySelector('.channels');
+    const searchInput = document.getElementById('channelSearch');
+    const video = document.getElementById('tv-video');
+    let hls = null;
 
-function initHLS(url) {
-    if (hls) {
-        hls.destroy();
+    // 生成频道列表
+    function renderChannels(channelList) {
+        channelsContainer.innerHTML = channelList.map(channel => `
+            <button class="channel-btn" data-url="${channel.url}">
+                ${channel.name}
+            </button>
+        `).join('');
     }
 
-    hls = new Hls({
-        debug: false,
-        autoStartLoad: true,
-        startPosition: -1
+    // 初始渲染
+    renderChannels(channels);
+
+    // 搜索功能
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredChannels = channels.filter(channel => 
+            channel.name.toLowerCase().includes(searchTerm)
+        );
+        renderChannels(filteredChannels);
     });
 
-    hls.attachMedia(video);
+    // 频道切换功能
+    function initHLS(url) {
+        if (hls) {
+            hls.destroy();
+        }
 
-    hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-        hls.loadSource(url);
-    });
+        hls = new Hls({
+            debug: false,
+            autoStartLoad: true,
+        });
 
-    hls.on(Hls.Events.ERROR, function (event, data) {
-        if (data.fatal) {
-            switch (data.type) {
-                case Hls.ErrorTypes.NETWORK_ERROR:
-                    console.log('网络错误，尝试重新加载...');
-                    hls.startLoad();
-                    break;
-                case Hls.ErrorTypes.MEDIA_ERROR:
-                    console.log('媒体错误，尝试恢复...');
-                    hls.recoverMediaError();
-                    break;
-                default:
-                    console.log('无法恢复的错误');
-                    hls.destroy();
-                    break;
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+            hls.loadSource(url);
+        });
+
+        hls.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+                switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.log('网络错误，尝试重新加载...');
+                        hls.startLoad();
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.log('媒体错误，尝试恢复...');
+                        hls.recoverMediaError();
+                        break;
+                    default:
+                        console.log('无法恢复的错误');
+                        hls.destroy();
+                        break;
+                }
             }
+        });
+    }
+
+    function changeChannel(url) {
+        if (Hls.isSupported()) {
+            initHLS(url);
+            video.play().catch(e => console.log('播放失败:', e));
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.play().catch(e => console.log('播放失败:', e));
+        } else {
+            console.log('浏览器不支持 HLS');
+        }
+    }
+
+    // 点击事件监听
+    channelsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('channel-btn')) {
+            const url = e.target.dataset.url;
+            changeChannel(url);
         }
     });
-}
 
-function changeChannel(url) {
-    if (Hls.isSupported()) {
-        initHLS(url);
-        video.play().catch(e => console.log('播放失败:', e));
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
-        video.play().catch(e => console.log('播放失败:', e));
-    } else {
-        console.log('浏览器不支持 HLS');
+    // 默认播放第一个频道
+    if (channels.length > 0) {
+        changeChannel(channels[0].url);
     }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // 为所有频道按钮添加点击事件
-    document.querySelectorAll('.channel-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const url = this.dataset.url;
-            changeChannel(url);
-        });
-    });
 });
 
 // 页面加载时创建雪花效果
